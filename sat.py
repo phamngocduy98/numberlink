@@ -64,6 +64,8 @@ class BinomialEncoding(Encoding):
         if i == N:
             # print("i == N", i, N, selected)
             return
+        if N - i < maxSelectedCount - selectedCount:
+            return
         selected[i] = True
         self.backtrack(i+1, N, selectedCount+1,
                        maxSelectedCount, callback, selected)

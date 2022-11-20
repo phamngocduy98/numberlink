@@ -53,7 +53,7 @@ duybinomial = BinomialEncoding(0)
 
 
 def at_least_binomal(vars, k, condition=True):
-    # return duybinomial.atLeastK(k, vars)
+    return duybinomial.atLeastK(k, vars)
 
     encoding_data = []
     for com in C(len(vars)-k+1, len(vars)):
@@ -65,12 +65,12 @@ def at_least_binomal(vars, k, condition=True):
 
 
 def at_most_binomal(vars, k, condition=True):
-    # return duybinomial.atMostK(k, vars)
+    return duybinomial.atMostK(k, vars)
     return at_least_binomal(vars, len(vars)-k, not condition).copy()
 
 
 def exactly_binomal(total_var, vars, k, condition=True):
-    # return duybinomial.exactK(k, vars), 0
+    return duybinomial.exactK(k, vars), 0
     return (
         at_most_binomal(vars, k, condition) +
         at_least_binomal(vars, k, condition),
@@ -284,8 +284,8 @@ for i in range(1, 11):
     for q in questions:
         # print(q)
         exe = NumberLink(q)
-        if exe.COL > 25 or exe.ROW > 25:
-            break
+        # if exe.COL > 25 or exe.ROW > 25:
+        #     break
         exe.solve()
         print(f"{i:5}, {exe.COL:3}, {exe.ROW:3}, {exe.VAR_COUNT:8}, {exe.Label_count:10}, {exe.getBuildTime():15.2f}, {exe.getSATTime():9.2f}, {exe.getTotalTime():9.2f}")
         # exe.draw()
