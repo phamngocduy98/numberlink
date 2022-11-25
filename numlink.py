@@ -270,12 +270,12 @@ def readFile(fileName: str):
             question.append(lines)
         questions.append(question)
 
-    file.close()
+    file.close()[i]
     return questions
 
 
 print("input,   n,   m, varcount, labelcount, buildClauseTime, solveTime, totalTime")
-for i in range(1, 11):
+for i in range(5, 11):
     questions = readFile(f"puzzles/inputs{i}")
     # exe = NumberLink(questions[0])
     # exe.solve()
@@ -283,12 +283,12 @@ for i in range(1, 11):
     # print(f"{exe.COL:2}, {exe.ROW:2}, {exe.VAR_COUNT:8}, {exe.Label_count:10}")
     for q in questions:
         # print(q)
-        exe = NumberLink(q)
-        # if exe.COL > 25 or exe.ROW > 25:
-        #     break
-        exe.solve()
-        print(f"{i:5}, {exe.COL:3}, {exe.ROW:3}, {exe.VAR_COUNT:8}, {exe.Label_count:10}, {exe.getBuildTime():15.2f}, {exe.getSATTime():9.2f}, {exe.getTotalTime():9.2f}")
-        # exe.draw()
+        try:
+            exe = NumberLink(q)
+            exe.solve()
+            print(f"{i:5}, {exe.COL:3}, {exe.ROW:3}, {exe.VAR_COUNT:8}, {exe.Label_count:10}, {exe.getBuildTime():15.2f}, {exe.getSATTime():9.2f}, {exe.getTotalTime():9.2f}")
+        except Exception as ex:
+            print(ex)
 
 # m = [[0, -1, -1, -1, 1, -1, -1, -1, -1]]
 # m += [[-1, -1, 3, -1, -1, -1, -1, -1, -1]]
