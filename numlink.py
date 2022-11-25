@@ -93,7 +93,7 @@ class NumberLink:
         self.colors = ["#"+''.join([random.choice('23456789ABCDEF') for j in range(6)])
                        for i in range(self.Label_count)]
 
-    def _draw(self, input):
+    def _draw(self, input, fileName=None):
         if (len(input)):
             figSizeW = 0.7*self.COL
             figSizeH = 0.7*self.ROW
@@ -106,16 +106,17 @@ class NumberLink:
             for row in range(self.ROW):
                 for col in range(self.COL):
                     num = input[row][col]
-                    label = self.Labels[num] if num != -1 else -2
+                    idx = self.Labels.index(num) if num in self.Labels else -1
                     table.add_cell(row=row, col=col, width=cellSize, height=cellSize,
-                                   text=f"{ label+ 1}" if label >= 0 else "", loc="center", facecolor=self.colors[num] if num >= 0 else "w")
+                                   text=f"{num}", loc="center", facecolor=self.colors[idx] if idx >= 0 else "w")
             table.set_fontsize(12)
 
-            plt.savefig("numberlink.png", dpi=200, bbox_inches='tight')
+            plt.savefig(fileName or "numberlink.png",
+                        dpi=200, bbox_inches='tight')
 
-    def draw(self):
-        # self._draw(self.input)
-        self._draw(self.result)
+    def draw(self, fileName=None):
+        self._draw(self.input, "input.png")
+        self._draw(self.result, fileName)
 
     def get_index(self, i, j, k):
         return self.Label_count*(self.COL*i + j) + k + 1
@@ -126,7 +127,7 @@ class NumberLink:
         idx = idx // self.Label_count
         j = idx % self.COL
         i = idx // self.COL
-        return (i, j, k)
+        return (i, j, self.Labels[k])
 
     def get_number_link_matrix(self, sat_solve_result):
         number_link_matrix = [[-1]*self.COL for i in range(self.ROW)]
@@ -156,32 +157,34 @@ class NumberLink:
         return nbr_cells
 
     def solve(self):
-        solver = Solver(name="minisat22",use_timer=True, bootstrap_with=[])
+        solver = Solver(name="minisat22", use_timer=True, bootstrap_with=[])
         binomial = BinomialEncoding(1)
         self.startTime = time.time()
         for row in range(self.ROW):
             for col in range(self.COL):
-                labels = [self.get_index(row, col, self.Labels[num])
+                labels = [self.get_index(row, col, num)
                           for num in range(self.Label_count)]
-                rules = binomial.exactOne(labels)  # Chính xác 1 nhãn được chọn cho 1 ô
+                # Chính xác 1 nhãn được chọn cho 1 ô
+                rules = binomial.exactOne(labels)
                 solver.append_formula(rules)
 
                 if (self.input[row][col] >= 0):  # Nhãn được điền sẵn
-                    label = self.get_index(row, col, self.input[row][col])
+                    num = self.Labels.index(self.input[row][col])
+                    label = self.get_index(row, col, num)
                     solver.add_clause([label])
 
                     # Chính xác 1 ô trong 4 ô xung quanh được điền nhãn giống nó
                     vars = self.list_neighbor_cell_index(
-                        row, col, self.input[row][col])
-                    rules= binomial.exactOne(vars)
+                        row, col, num)
+                    rules = binomial.exactOne(vars)
                     solver.append_formula(rules)
                 else:
                     for num in range(self.Label_count):
                         label = self.get_index(
-                            row, col, self.Labels[num])  # Nhãn giả định
+                            row, col, num)  # Nhãn giả định
                         # Lấy danh sách biến các ô xung quanh với nhãn giống nhãn giả định
                         nbr_label_vars = self.list_neighbor_cell_index(
-                            row, col, self.Labels[num])
+                            row, col, num)
 
                         # Nếu nhãn giả định được chọn -> chính xác 2 ô xung quanh được gán nhãn giống nó
                         # Chính xác 2 ô xung quanh có nhãn giống nhãn giả định // Luật tạm theo nhãn giả định
@@ -220,6 +223,7 @@ def toNumber(c):
         return 36 + ordc - 97
     return -1
 
+
 def readFile(fileName):
     questions = []
 
@@ -257,20 +261,26 @@ def readFile(fileName):
     file.close()
     return questions
 
+
 print("input,   n,   m, varcount, labelcount, buildClauseTime, solveTime, totalTime")
-for i in range(5, 11):
+for i in range(1, 2):
     questions = readFile(f"puzzles/inputs{i}")
-    # exe = NumberLink(questions[0])
-    # exe.solve()
-    # exe.draw()
+    # print(questions[0])
+    exe = NumberLink(questions[0])
+    exe.solve()
+    # print(exe.result)
+    exe.draw()
     # print(f"{exe.COL:2}, {exe.ROW:2}, {exe.VAR_COUNT:8}, {exe.Label_count:10}")
-    for q in questions:
-        try:
-            exe = NumberLink(q)
-            exe.solve()
-            print(f"{i:5}, {exe.COL:3}, {exe.ROW:3}, {exe.VAR_COUNT:8}, {exe.Label_count:10}, {exe.getBuildTime():15.2f}, {exe.getSATTime():9.2f}, {exe.getTotalTime():9.2f}")
-        except Exception as ex:
-            print("EX",ex)
+    # for j, q in enumerate(questions):
+    #     try:
+    #         print(q)
+    #         exe = NumberLink(q)
+    #         exe.solve()
+    #         exe.draw(f"outputs{i}{j}.png")
+    #         print(f"{i:5}, {exe.COL:3}, {exe.ROW:3}, {exe.VAR_COUNT:8}, {exe.Label_count:10}, {exe.getBuildTime():15.2f}, {exe.getSATTime():9.2f}, {exe.getTotalTime():9.2f}")
+    #         break
+    #     except Exception as ex:
+    #         print("EX", ex)
 
 # m = [[0, -1, -1, -1, 1, -1, -1, -1, -1]]
 # m += [[-1, -1, 3, -1, -1, -1, -1, -1, -1]]
