@@ -21,7 +21,7 @@ class Encoding():
     def atMostOne(self, var) :
         return []
 
-    def atsLeatK(self, k, var) :
+    def atLeatK(self, k, var) :
         return []
 
     def atMostK(self, k, var) :

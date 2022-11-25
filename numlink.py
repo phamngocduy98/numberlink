@@ -5,18 +5,6 @@ from pysat.solvers import Solver
 from sat import BinomialEncoding
 
 
-def sat_solve(cnf):
-    s = Solver(name="minisat22")
-    for cl in cnf:
-        if (len(cl) > 0):
-            s.add_clause(cl)
-    if (s.solve()):
-        return s.get_model()
-    else:
-        print("UNSAT")
-        return []
-
-
 # Sinh tổ hợp chập k của N
 memo = {}
 
@@ -169,15 +157,14 @@ class NumberLink:
 
     def solve(self):
         solver = Solver(name="minisat22",use_timer=True, bootstrap_with=[])
+        binomial = BinomialEncoding(1)
         self.startTime = time.time()
         for row in range(self.ROW):
             for col in range(self.COL):
                 labels = [self.get_index(row, col, self.Labels[num])
                           for num in range(self.Label_count)]
-                rules, add_var_count = self.exact_encoder(
-                    self.VAR_COUNT, labels, 1, True)  # Chính xác 1 nhãn được chọn cho 1 ô
+                rules = binomial.exactOne(labels)  # Chính xác 1 nhãn được chọn cho 1 ô
                 solver.append_formula(rules)
-                self.VAR_COUNT += add_var_count
 
                 if (self.input[row][col] >= 0):  # Nhãn được điền sẵn
                     label = self.get_index(row, col, self.input[row][col])
@@ -186,10 +173,8 @@ class NumberLink:
                     # Chính xác 1 ô trong 4 ô xung quanh được điền nhãn giống nó
                     vars = self.list_neighbor_cell_index(
                         row, col, self.input[row][col])
-                    rules, add_var_count = self.exact_encoder(
-                        self.VAR_COUNT, vars, 1, True)
+                    rules= binomial.exactOne(vars)
                     solver.append_formula(rules)
-                    self.VAR_COUNT += add_var_count
                 else:
                     for num in range(self.Label_count):
                         label = self.get_index(
@@ -200,8 +185,7 @@ class NumberLink:
 
                         # Nếu nhãn giả định được chọn -> chính xác 2 ô xung quanh được gán nhãn giống nó
                         # Chính xác 2 ô xung quanh có nhãn giống nhãn giả định // Luật tạm theo nhãn giả định
-                        rules_cnf, add_var_count = self.exact_encoder(
-                            self.VAR_COUNT, nbr_label_vars, 2, True)
+                        rules_cnf = binomial.exactK(2, nbr_label_vars)
                         # label -> rules_cnf  <=> -label V rules <=> -label V (rule1 ^ rule2 ^ ....) <=> (-label V rule1) ^ (-label V rule2) .....
                         for rule in rules_cnf:
                             solver.append_formula([[-label] + rule])
@@ -213,7 +197,7 @@ class NumberLink:
         solver.solve()
         result = solver.get_model()
         self.satTime = time.time()
-        self.result = self.get_number_link_matrix(result)
+        self.result = self.get_number_link_matrix(result) if result else []
         return self.result
 
     def getBuildTime(self):
@@ -235,7 +219,6 @@ def toNumber(c):
     if 97 <= ordc and ordc <= 122:  # isLowerChar [a-z] [36-61]
         return 36 + ordc - 97
     return -1
-
 
 def readFile(fileName):
     questions = []
@@ -273,7 +256,6 @@ def readFile(fileName):
 
     file.close()
     return questions
-
 
 print("input,   n,   m, varcount, labelcount, buildClauseTime, solveTime, totalTime")
 for i in range(5, 11):
