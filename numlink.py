@@ -102,7 +102,6 @@ class NumberLink:
         self.Label_count = len(self.Labels)
         # print("Label", self.Labels)
         self.MAX_VALUE = self.VAR_COUNT = self.ROW * self.COL * self.Label_count
-        self.cnf = []
         self.colors = ["#"+''.join([random.choice('23456789ABCDEF') for j in range(6)])
                        for i in range(self.Label_count)]
 
@@ -169,6 +168,7 @@ class NumberLink:
         return nbr_cells
 
     def solve(self):
+        solver = Solver(name="minisat22",use_timer=True, bootstrap_with=[])
         self.startTime = time.time()
         for row in range(self.ROW):
             for col in range(self.COL):
@@ -176,19 +176,19 @@ class NumberLink:
                           for num in range(self.Label_count)]
                 rules, add_var_count = self.exact_encoder(
                     self.VAR_COUNT, labels, 1, True)  # Chính xác 1 nhãn được chọn cho 1 ô
-                self.cnf += rules
+                solver.append_formula(rules)
                 self.VAR_COUNT += add_var_count
 
                 if (self.input[row][col] >= 0):  # Nhãn được điền sẵn
                     label = self.get_index(row, col, self.input[row][col])
-                    self.cnf.append([label])
+                    solver.add_clause([label])
 
                     # Chính xác 1 ô trong 4 ô xung quanh được điền nhãn giống nó
                     vars = self.list_neighbor_cell_index(
                         row, col, self.input[row][col])
                     rules, add_var_count = self.exact_encoder(
                         self.VAR_COUNT, vars, 1, True)
-                    self.cnf += rules
+                    solver.append_formula(rules)
                     self.VAR_COUNT += add_var_count
                 else:
                     for num in range(self.Label_count):
@@ -204,13 +204,14 @@ class NumberLink:
                             self.VAR_COUNT, nbr_label_vars, 2, True)
                         # label -> rules_cnf  <=> -label V rules <=> -label V (rule1 ^ rule2 ^ ....) <=> (-label V rule1) ^ (-label V rule2) .....
                         for rule in rules_cnf:
-                            self.cnf += [[-label] + rule]
+                            solver.append_formula([[-label] + rule])
 
         # print(f"VAR_COUNT = {self.VAR_COUNT}")
         # print(f"Label_count = {self.Label_count}")
         # print("final CNF: ", self.cnf)
         self.buildTime = time.time()
-        result = sat_solve(self.cnf)
+        solver.solve()
+        result = solver.get_model()
         self.satTime = time.time()
         self.result = self.get_number_link_matrix(result)
         return self.result
@@ -225,7 +226,7 @@ class NumberLink:
         return self.satTime - self.startTime
 
 
-def toNumber(c: str):
+def toNumber(c):
     ordc = ord(c)
     if 48 <= ordc and ordc <= 57:  # isNumber [0-9]
         return ordc - 48
@@ -236,7 +237,7 @@ def toNumber(c: str):
     return -1
 
 
-def readFile(fileName: str):
+def readFile(fileName):
     questions = []
 
     file = open(fileName)
@@ -270,7 +271,7 @@ def readFile(fileName: str):
             question.append(lines)
         questions.append(question)
 
-    file.close()[i]
+    file.close()
     return questions
 
 
@@ -282,13 +283,12 @@ for i in range(5, 11):
     # exe.draw()
     # print(f"{exe.COL:2}, {exe.ROW:2}, {exe.VAR_COUNT:8}, {exe.Label_count:10}")
     for q in questions:
-        # print(q)
         try:
             exe = NumberLink(q)
             exe.solve()
             print(f"{i:5}, {exe.COL:3}, {exe.ROW:3}, {exe.VAR_COUNT:8}, {exe.Label_count:10}, {exe.getBuildTime():15.2f}, {exe.getSATTime():9.2f}, {exe.getTotalTime():9.2f}")
         except Exception as ex:
-            print(ex)
+            print("EX",ex)
 
 # m = [[0, -1, -1, -1, 1, -1, -1, -1, -1]]
 # m += [[-1, -1, 3, -1, -1, -1, -1, -1, -1]]

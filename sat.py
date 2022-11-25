@@ -1,38 +1,39 @@
-from time import time
-from pysat.solvers import MinisatGH
-from typing import Callable
 import math
-import matplotlib.pyplot as plt
 import random
+from time import time
+from typing import Callable, Dict, List
+
+import matplotlib.pyplot as plt
+from pysat.solvers import MinisatGH
 
 
 class Encoding():
-    def __init__(self, varStartIdx: int) -> None:
+    def __init__(self, varStartIdx):
         self.varStartIdx = varStartIdx
         self.newVarCount = 0
 
     def reset(self):
         self.varStartIdx += self.newVarCount
 
-    def atLeastOne(self, var: list[int]) -> list[list[int]]:
+    def atLeastOne(self, var) :
         return []
 
-    def atMostOne(self, var: list[int]) -> list[list[int]]:
+    def atMostOne(self, var) :
         return []
 
-    def atLeastK(self, k: int, var: list[int]) -> list[list[int]]:
+    def atsLeatK(self, k, var) :
         return []
 
-    def atMostK(self, k: int, var: list[int]) -> list[list[int]]:
+    def atMostK(self, k, var) :
         return []
 
-    def exactOne(self, var: list[int]) -> list[list[int]]:
+    def exactOne(self, var) :
         # print("exactOne", var)
         clauses = self.atMostOne(var)
         clauses.extend(self.atLeastOne(var))
         return clauses
 
-    def exactK(self, k: int, var: list[int]) -> list[list[int]]:
+    def exactK(self, k, var) :
         # print("exactOne", var)
         clauses = self.atMostK(k, var)
         clauses.extend(self.atLeastK(k, var))
@@ -41,11 +42,11 @@ class Encoding():
 
 class BinomialEncoding(Encoding):
     backtrackCount = 0
-    def atLeastOne(self, var: list[int]) -> list[list[int]]:
+    def atLeastOne(self, var) :
         # print("atLeastOne", var)
         return [[var[k] for k in range(0, len(var))]]
 
-    def atMostOne(self, var: list[int]) -> list[list[int]]:
+    def atMostOne(self, var) :
         # print("atMostOne", var)
         clauses = []
         for i in range(0, len(var)):
@@ -54,11 +55,11 @@ class BinomialEncoding(Encoding):
                     clauses.append([-var[i], -var[j]])
         return clauses
 
-    def startBacktrack(self,N:int, maxSelectedCount:int, callback:Callable[[dict[int, bool]], None]):
+    def startBacktrack(self,N, maxSelectedCount, callback):
         self.backtrackCount = 0
         self.backtrack(0,N,0, maxSelectedCount, callback,{})
 
-    def backtrack(self, i: int, N: int, selectedCount: int, maxSelectedCount: int, callback: Callable[[dict[int, bool]], None], selected: dict[int, bool] = {}):
+    def backtrack(self, i, N, selectedCount, maxSelectedCount, callback, selected = {}):
         # print("selectedCount", selectedCount)
         if self.backtrackCount > 10000:
             raise Exception("Backtrack call limit exceeded")
@@ -81,10 +82,10 @@ class BinomialEncoding(Encoding):
         self.backtrack(i+1, N, selectedCount,
                        maxSelectedCount, callback, selected)
 
-    def atLeastK(self, k: int, var: list[int]) -> list[list[int]]:
+    def atLeastK(self, k, var) :
         clauses = []
 
-        def onBuildOK(selected: dict[int, bool]):
+        def onBuildOK(selected):
             vars = []
             for varIdx in selected:
                 if selected[varIdx]:
@@ -94,38 +95,38 @@ class BinomialEncoding(Encoding):
         self.startBacktrack( len(var),  len(var) - k + 1, onBuildOK)
         return clauses
 
-    def atMostK(self, k: int, var: list[int]) -> list[list[int]]:
+    def atMostK(self, k, var) :
         clauses = []
 
-        def onBuildOK(selected: dict[int, bool]):
+        def onBuildOK(selected):
             vars = []
             for varIdx in selected:
                 if selected[varIdx]:
                     vars.append(-var[varIdx])
             clauses.append(vars)
 
-        self.backtrack(len(var), k + 1, onBuildOK)
+        self.startBacktrack(len(var), k + 1, onBuildOK)
         return clauses
 
 
 class BinaryEncoding(Encoding):
-    def __init__(self, varStartIdx: int) -> None:
+    def __init__(self, varStartIdx) -> None:
         Encoding.__init__(self, varStartIdx)
 
-    def Yj(self, i: int):
+    def Yj(self, i):
         return self.varStartIdx + i
 
-    def atLeastK(self, k: int, var: list[int]) -> list[list[int]]:
+    def atLeastK(self, k, var) :
         return []
 
-    def atMostK(self, k: int, var: list[int]) -> list[list[int]]:
+    def atMostK(self, k, var) :
         return []
 
-    def atLeastOne(self, var: list[int]) -> list[list[int]]:
+    def atLeastOne(self, var) :
         # print("atLeastOne", var)
         return [[var[k] for k in range(0, len(var))]]
 
-    def atMostOne(self, var: list[int]) -> list[list[int]]:
+    def atMostOne(self, var) :
         # print("atMostOne", var)
         clauses = []
         N = len(var)
