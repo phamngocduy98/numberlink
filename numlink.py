@@ -2,7 +2,7 @@ import time
 import matplotlib.pyplot as plt
 import random
 from pysat.solvers import Solver
-from sat import BinomialEncoding
+from sat import BinaryEncoding, BinomialEncoding
 
 
 # Sinh tổ hợp chập k của N
@@ -158,12 +158,13 @@ class NumberLink:
     def solve(self):
         solver = Solver(name="minisat22",use_timer=True, bootstrap_with=[])
         binomial = BinomialEncoding(1)
+        binary = BinaryEncoding(self.VAR_COUNT)
         self.startTime = time.time()
         for row in range(self.ROW):
             for col in range(self.COL):
                 labels = [self.get_index(row, col, self.Labels[num])
                           for num in range(self.Label_count)]
-                rules = binomial.exactOne(labels)  # Chính xác 1 nhãn được chọn cho 1 ô
+                rules = binomial.atMostOne(labels)  # Chính xác 1 nhãn được chọn cho 1 ô
                 solver.append_formula(rules)
 
                 if (self.input[row][col] >= 0):  # Nhãn được điền sẵn
@@ -189,12 +190,9 @@ class NumberLink:
                         # label -> rules_cnf  <=> -label V rules <=> -label V (rule1 ^ rule2 ^ ....) <=> (-label V rule1) ^ (-label V rule2) .....
                         for rule in rules_cnf:
                             solver.append_formula([[-label] + rule])
-
-        # print(f"VAR_COUNT = {self.VAR_COUNT}")
-        # print(f"Label_count = {self.Label_count}")
-        # print("final CNF: ", self.cnf)
         self.buildTime = time.time()
         solver.solve()
+        self.accTime = solver.time_accum()
         result = solver.get_model()
         self.satTime = time.time()
         self.result = self.get_number_link_matrix(result) if result else []
@@ -204,7 +202,7 @@ class NumberLink:
         return self.buildTime - self.startTime
 
     def getSATTime(self):
-        return self.satTime - self.buildTime
+        return self.accTime
 
     def getTotalTime(self):
         return self.satTime - self.startTime
@@ -258,12 +256,8 @@ def readFile(fileName):
     return questions
 
 print("input,   n,   m, varcount, labelcount, buildClauseTime, solveTime, totalTime")
-for i in range(5, 11):
+for i in range(6, 11):
     questions = readFile(f"puzzles/inputs{i}")
-    # exe = NumberLink(questions[0])
-    # exe.solve()
-    # exe.draw()
-    # print(f"{exe.COL:2}, {exe.ROW:2}, {exe.VAR_COUNT:8}, {exe.Label_count:10}")
     for q in questions:
         try:
             exe = NumberLink(q)
