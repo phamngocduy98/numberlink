@@ -100,9 +100,9 @@ class NumberLink:
             figSizeW = max(self.COL*0.15,2)
             figSizeH = max(self.ROW*0.15,2)
             cellSizeW = figSizeW/self.COL
-            cellSizeH = figSizeH/self.COL
-            fig, ax1 = plt.subplots(figsize=(figSizeW+1, figSizeH+1))
-            # ax1.axis('off')
+            cellSizeH = figSizeH/self.ROW
+            fig, ax1 = plt.subplots(figsize=(figSizeW, figSizeH))
+            ax1.axis('off')
 
             table = ax1.table(
                 cellColours=[["0"], ["0"]], loc='center', cellLoc='center')
@@ -112,7 +112,7 @@ class NumberLink:
                     idx = self.Labels.index(num) if num in self.Labels else -1
                     table.add_cell(row=row, col=col, width=cellSizeW, height=cellSizeH,
                                    text=f"{idx}" if idx >-1 else '', loc="center", facecolor=self.colors[idx] if idx >= 0 else "w")
-            table.set_fontsize(0)
+            table.set_fontsize(cellSizeW*dpi)
             print("FIG SIZE", figSizeH, figSizeW)
             plt.savefig("outputs/"+(fileName or "numberlink.png"),
                         dpi=dpi, bbox_inches='tight')
