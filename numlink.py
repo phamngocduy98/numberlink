@@ -1,3 +1,4 @@
+import csv
 import math
 import time
 import traceback
@@ -7,74 +8,11 @@ from pysat.solvers import Solver
 from tabulate import tabulate
 from sat import BinaryEncoding, BinomialEncoding
 
-
-# Sinh tổ hợp chập k của N
-memo = {}
-
-
-def C(k, N):
-    key = f"{k}-{N}"
-    if (key in memo):
-        return memo[key]
-    # print(f"C{k}:{N}")
-    result = []
-    used = [False]*N
-    temp = [0]*k
-
-    def backtrack(i):
-        if (i == k):
-            result.append(temp.copy())
-            return
-        for j in range(N):
-            if (not used[j]):
-                if (i > 0 and j < temp[i-1]):
-                    continue
-                temp[i] = j
-                used[j] = True
-                backtrack(i+1)
-                used[j] = False
-    backtrack(0)
-    memo[key] = result.copy()
-    return result.copy()
-
-# Binomal
-
-
-duybinomial = BinomialEncoding(0)
-
-
-def at_least_binomal(vars, k, condition=True):
-    return duybinomial.atLeastK(k, vars)
-
-    encoding_data = []
-    for com in C(len(vars)-k+1, len(vars)):
-        clause = []
-        for idx in com:
-            clause.append(vars[idx] if condition else -vars[idx])
-        encoding_data.append(clause.copy())
-    return encoding_data.copy()
-
-
-def at_most_binomal(vars, k, condition=True):
-    return duybinomial.atMostK(k, vars)
-    return at_least_binomal(vars, len(vars)-k, not condition).copy()
-
-
-def exactly_binomal(total_var, vars, k, condition=True):
-    return duybinomial.exactK(k, vars), 0
-    return (
-        at_most_binomal(vars, k, condition) +
-        at_least_binomal(vars, k, condition),
-        0  # add_var_count
-    )
-
-
 class NumberLink:
-    def __init__(self, input, exact_encoder=exactly_binomal):
+    def __init__(self, input):
         self.input = input
         self.ROW = len(input)
         self.COL = len(input[0])
-        self.exact_encoder = exact_encoder
         self.Label_count = 0
         self.Labels = []
         self.LabelStartPos = {}
@@ -112,8 +50,7 @@ class NumberLink:
                     idx = self.Labels.index(num) if num in self.Labels else -1
                     table.add_cell(row=row, col=col, width=cellSizeW, height=cellSizeH,
                                    text=f"{idx}" if idx >-1 else '', loc="center", facecolor=self.colors[idx] if idx >= 0 else "w")
-            table.set_fontsize(cellSizeW*dpi)
-            print("FIG SIZE", figSizeH, figSizeW)
+            table.set_fontsize(min(cellSizeW*dpi*0.8,10))
             plt.savefig("outputs/"+(fileName or "numberlink.png"),
                         dpi=dpi, bbox_inches='tight')
             plt.close()
@@ -293,24 +230,26 @@ def readFile(fileName):
 
 head = ["File","Kích thước","Số nhãn" "Số biến", "Số mệnh đề", "Thời gian giải"]
 data = []
-for i in range(2, 4):
+for i in range(1, 5):
     questions = readFile(f"puzzles/inputs{i}")
-    for j, q in enumerate(questions[:1]):
-        exe = NumberLink(q)
-        try:
-            start = time.time()
-            exe.solve()
-            solve_end = time.time()
-            result = [f"input{i}",f"{exe.ROW}x{exe.COL}",exe.Label_count,exe.VAR_COUNT,exe.CLAUSES,round(solve_end-start,3)]
-            print(result)
-            exe.draw(f"inputs{i}_({exe.ROW}x{exe.COL})_{exe.Label_count}labels_({j})")
-            draw_end= time.time()
-            data.append(result)
-        except Exception as ex:
-            data+=[[f"input{i}",f"{exe.ROW}x{exe.COL}",exe.Label_count,exe.VAR_COUNT,exe.CLAUSES,"time out"]]
-            print("EX", ex)
-            continue
-            # traceback.print_exception(ex)
+    with open(f'statistics/inputs{i}.csv', mode='w') as resultFile:
+        statisticWriter = csv.writer(resultFile,delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        for j, q in enumerate(questions):
+            exe = NumberLink(q)
+            try:
+                start = time.time()
+                exe.solve()
+                solve_end = time.time()
+                result = [f"input{i}",f"{exe.ROW}x{exe.COL}",exe.Label_count,exe.VAR_COUNT,exe.CLAUSES,round(solve_end-start,3)]
+                print(result)
+                statisticWriter.writerow(result)
+                exe.draw(f"inputs{i}_({exe.ROW}x{exe.COL})_{exe.Label_count}labels_({j})")
+                draw_end= time.time()
+                data.append(result)
+            except Exception as ex:
+                data+=[[f"input{i}",f"{exe.ROW}x{exe.COL}",exe.Label_count,exe.VAR_COUNT,exe.CLAUSES,"error"]]
+                continue
+                # traceback.print_exception(ex)
 print(tabulate(data, headers=head, tablefmt="grid"))
 
 
